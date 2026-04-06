@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     }
 
     const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-fast-generate-preview:generateVideos",
+      "https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:generateVideos",
       {
         method: "POST",
         headers: {
