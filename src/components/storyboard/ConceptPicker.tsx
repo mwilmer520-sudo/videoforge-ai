@@ -79,8 +79,13 @@ function ConceptCard({
 }) {
   return (
     <Card
+      role="button"
+      tabIndex={0}
+      aria-pressed={isSelected}
+      aria-label={`Concept ${index + 1}: ${concept.title}`}
       onClick={onSelect}
-      className={`group cursor-pointer transition-all duration-300 overflow-hidden border-2 bg-zinc-900 hover:scale-[1.02] ${
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(); } }}
+      className={`group cursor-pointer transition-all duration-300 overflow-hidden border-2 bg-zinc-900 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
         isSelected
           ? `${colorScheme.ring} ring-2 ring-offset-2 ring-offset-zinc-950 border-transparent`
           : "border-zinc-800 hover:border-zinc-600"
@@ -196,17 +201,16 @@ function ConceptCard({
           </Badge>
         </div>
 
-        {/* Select button */}
-        <Button
-          className={`w-full transition-all ${
+        {/* Selection indicator */}
+        <div
+          className={`w-full text-center py-2 rounded-md text-xs font-semibold transition-all ${
             isSelected
               ? `bg-gradient-to-r ${colorScheme.gradient} text-white`
-              : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+              : "bg-zinc-800 text-zinc-400"
           }`}
-          size="sm"
         >
-          {isSelected ? "Selected — Edit Below" : "Use This Concept"}
-        </Button>
+          {isSelected ? "Selected — Edit Below" : "Click to Use This Concept"}
+        </div>
       </div>
     </Card>
   );

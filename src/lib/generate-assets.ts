@@ -7,47 +7,64 @@ type UpdateFn = {
   setGenerationStep: (step: string) => void;
 };
 
+export interface AssetGenerationResult {
+  total: number;
+  succeeded: number;
+  failed: number;
+  errors: string[];
+}
+
 export async function generateAllAssets(
   storyboard: Storyboard,
   fns: UpdateFn
-) {
+): Promise<AssetGenerationResult> {
   const { scenes, voiceover, music, brief } = storyboard;
-
-  // Generate all in parallel: scenes (video clips), voiceover, music
+  const errors: string[] = [];
   const promises: Promise<void>[] = [];
 
-  // 1. Generate video clips for each scene via VEO
+  // 1. Generate video clips only for hero-cinematic scenes via VEO
   for (const scene of scenes) {
     if (scene.status === "ready") continue;
 
-    promises.push(
-      (async () => {
-        fns.updateScene(scene.id, { status: "generating" });
-        fns.setGenerationStep(`Generating clip: ${scene.title}...`);
+    // Only hero-cinematic scenes need VEO; others are Remotion-rendered
+    if (scene.layout === "hero-cinematic" && scene.veoPrompt) {
+      promises.push(
+        (async () => {
+          fns.updateScene(scene.id, { status: "generating" });
+          fns.setGenerationStep(`Generating clip: ${scene.title}...`);
 
-        try {
-          const res = await fetch("/api/veo", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              prompt: scene.veoPrompt,
-              aspectRatio: brief.aspectRatio,
-            }),
-          });
+          try {
+            const res = await fetch("/api/veo", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                prompt: scene.veoPrompt,
+                aspectRatio: brief.aspectRatio,
+              }),
+            });
 
-          if (!res.ok) throw new Error("VEO failed");
-          const data = await res.json();
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({ error: "VEO failed" }));
+              throw new Error(err.error || "VEO failed");
+            }
 
-          fns.updateScene(scene.id, {
-            videoUrl: data.videoUrl,
-            thumbnailUrl: data.thumbnailUrl,
-            status: "ready",
-          });
-        } catch {
-          fns.updateScene(scene.id, { status: "error" });
-        }
-      })()
-    );
+            const data = await res.json();
+            fns.updateScene(scene.id, {
+              videoUrl: data.videoUrl,
+              thumbnailUrl: data.thumbnailUrl,
+              status: "ready",
+            });
+          } catch (e: any) {
+            const msg = `Scene "${scene.title}": ${e.message || "VEO failed"}`;
+            errors.push(msg);
+            fns.updateScene(scene.id, { status: "error" });
+          }
+        })()
+      );
+    } else {
+      // Non-VEO scenes are rendered by Remotion — mark as ready
+      fns.updateScene(scene.id, { status: "ready" });
+    }
   }
 
   // 2. Generate voiceover
@@ -67,14 +84,15 @@ export async function generateAllAssets(
             }),
           });
 
-          if (!res.ok) throw new Error("Voice failed");
-          const data = await res.json();
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({ error: "Voice failed" }));
+            throw new Error(err.error || "Voice failed");
+          }
 
-          fns.updateVoiceover({
-            audioUrl: data.audioUrl,
-            status: "ready",
-          });
-        } catch {
+          const data = await res.json();
+          fns.updateVoiceover({ audioUrl: data.audioUrl, status: "ready" });
+        } catch (e: any) {
+          errors.push(`Voiceover: ${e.message || "Voice failed"}`);
           fns.updateVoiceover({ status: "error" });
         }
       })()
@@ -98,20 +116,31 @@ export async function generateAllAssets(
             }),
           });
 
-          if (!res.ok) throw new Error("Music failed");
-          const data = await res.json();
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({ error: "Music failed" }));
+            throw new Error(err.error || "Music failed");
+          }
 
-          fns.updateMusic({
-            audioUrl: data.audioUrl,
-            status: "ready",
-          });
-        } catch {
+          const data = await res.json();
+          fns.updateMusic({ audioUrl: data.audioUrl, status: "ready" });
+        } catch (e: any) {
+          errors.push(`Music: ${e.message || "Music failed"}`);
           fns.updateMusic({ status: "error" });
         }
       })()
     );
   }
 
-  await Promise.allSettled(promises);
+  const results = await Promise.allSettled(promises);
+  const succeeded = results.filter((r) => r.status === "fulfilled").length;
+  const failed = results.filter((r) => r.status === "rejected").length;
+
   fns.setGenerationStep("");
+
+  return {
+    total: results.length,
+    succeeded,
+    failed: failed + errors.length,
+    errors,
+  };
 }

@@ -46,7 +46,7 @@ export function VideoPreview() {
         className="rounded-lg overflow-hidden bg-black"
         style={{
           aspectRatio: `${dimensions.width}/${dimensions.height}`,
-          maxHeight: storyboard.brief.aspectRatio === "9:16" ? 500 : undefined,
+          maxHeight: storyboard.brief.aspectRatio === "9:16" ? 500 : 600,
           margin: "0 auto",
         }}
       >

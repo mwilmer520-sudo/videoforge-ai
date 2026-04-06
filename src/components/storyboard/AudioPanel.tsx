@@ -15,7 +15,7 @@ export function AudioPanel() {
   const { voiceover, music } = storyboard;
 
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Voiceover */}
       <Card className="bg-zinc-900 border-zinc-800 p-4">
         <div className="flex items-center justify-between mb-3">

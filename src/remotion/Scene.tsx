@@ -213,6 +213,31 @@ export const SceneComponent: React.FC<SceneProps> = ({
         </>
       )}
 
+      {/* ======= LAYOUT: Fallback for unknown layouts ======= */}
+      {!["hero-cinematic", "presenter-full", "presenter-left-ui-right", "ui-full-with-callouts", "ui-transition-flow", "metrics-grid", "text-centered", "cta-screen"].includes(scene.layout) && (
+        <>
+          <Background primaryColor={primaryColor} secondaryColor={secondaryColor} style="dark" />
+          <AnimatedText
+            text={scene.title || "Scene"}
+            style="headline"
+            animation="fade"
+            position="center"
+            fontFamily={fontFamily}
+          />
+          {scene.description && (
+            <AnimatedText
+              text={scene.description}
+              style="body"
+              animation="fade"
+              position="bottom-center"
+              color="rgba(255,255,255,0.6)"
+              fontFamily={fontFamily}
+              delay={10}
+            />
+          )}
+        </>
+      )}
+
       {/* ======= LAYOUT: CTA Screen ======= */}
       {scene.layout === "cta-screen" && (
         <>

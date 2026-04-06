@@ -48,7 +48,9 @@ export function Timeline() {
                 <button
                   key={scene.id}
                   onClick={() => selectScene(scene.id)}
-                  className={`${colors[i % colors.length]} relative flex items-center justify-center transition-all ${
+                  aria-pressed={isSelected}
+                  aria-label={`${scene.title}, ${(scene.durationMs / 1000).toFixed(1)} seconds`}
+                  className={`${colors[i % colors.length]} relative flex items-center justify-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
                     isSelected ? "ring-2 ring-white ring-offset-1 ring-offset-zinc-900 z-10" : "hover:brightness-110"
                   }`}
                   style={{ width: `${widthPct}%` }}

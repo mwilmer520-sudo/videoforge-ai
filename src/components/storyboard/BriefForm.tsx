@@ -69,12 +69,13 @@ Examples:
         <label className="block text-sm font-medium text-zinc-300 mb-2">
           Target Platform
         </label>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {PLATFORMS.map((p) => (
             <button
               key={p.value}
               type="button"
               onClick={() => setPlatform(p.value)}
+              aria-pressed={platform === p.value}
               className={`py-2.5 px-3 rounded-lg text-xs font-medium transition-all flex flex-col items-center gap-1 ${
                 platform === p.value
                   ? "bg-indigo-600 text-white ring-2 ring-indigo-400"
@@ -97,24 +98,26 @@ Examples:
           Brand Colors <span className="text-zinc-600 font-normal">(optional)</span>
         </label>
         <div className="flex gap-4">
-          <div className="flex items-center gap-2">
+          <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="color"
               value={primaryColor}
               onChange={(e) => setPrimaryColor(e.target.value)}
               className="w-8 h-8 rounded cursor-pointer bg-transparent border-0"
+              aria-label="Primary brand color"
             />
             <span className="text-xs text-zinc-500">Primary</span>
-          </div>
-          <div className="flex items-center gap-2">
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="color"
               value={secondaryColor}
               onChange={(e) => setSecondaryColor(e.target.value)}
               className="w-8 h-8 rounded cursor-pointer bg-transparent border-0"
+              aria-label="Secondary brand color"
             />
             <span className="text-xs text-zinc-500">Secondary</span>
-          </div>
+          </label>
         </div>
       </div>
 

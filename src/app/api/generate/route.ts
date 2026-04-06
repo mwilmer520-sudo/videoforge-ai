@@ -143,7 +143,14 @@ RULES:
 
 export async function POST(req: Request) {
   try {
-    const brief: Brief = await req.json();
+    const body = await req.json();
+    if (!body?.prompt || typeof body.prompt !== "string" || !body.prompt.trim()) {
+      return Response.json({ error: "A brief description is required" }, { status: 400 });
+    }
+    if (!body?.brandKit?.primaryColor || !body?.brandKit?.secondaryColor) {
+      return Response.json({ error: "Brand colors are required" }, { status: 400 });
+    }
+    const brief = body as Brief;
     const client = new Anthropic();
 
     const response = await client.messages.create({
@@ -172,7 +179,24 @@ Remember: generate 3 DISTINCT concepts using different storytelling frameworks. 
       response.content[0].type === "text" ? response.content[0].text : "";
 
     const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, text];
-    const parsed = JSON.parse(jsonMatch[1]!.trim());
+    const rawJson = jsonMatch[1]?.trim();
+
+    if (!rawJson) {
+      console.error("No JSON found in Claude response:", text.slice(0, 500));
+      return Response.json({ error: "AI response did not contain valid JSON" }, { status: 502 });
+    }
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(rawJson);
+    } catch (parseError) {
+      console.error("JSON parse error:", parseError, "Raw:", rawJson.slice(0, 500));
+      return Response.json({ error: "AI response contained malformed JSON" }, { status: 502 });
+    }
+
+    if (!parsed?.concepts || !Array.isArray(parsed.concepts) || parsed.concepts.length === 0) {
+      return Response.json({ error: "AI response missing concepts array" }, { status: 502 });
+    }
 
     // Build full concepts with IDs
     const concepts: VideoConcept[] = parsed.concepts.map((c: any) => {

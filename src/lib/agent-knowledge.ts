@@ -159,27 +159,6 @@ export const VEO_PROMPT_TECHNIQUES = {
     "luxury premium with rich colors",
     "warm nostalgic vintage film grain",
   ],
-  buildPrompt(scene: {
-    subject: string;
-    action: string;
-    camera?: string;
-    lighting?: string;
-    motion?: string;
-    style?: string;
-    mood?: string;
-  }): string {
-    const parts = [
-      scene.camera || "medium shot",
-      scene.subject,
-      scene.action,
-      scene.lighting ? `with ${scene.lighting}` : "with clean commercial lighting",
-      scene.motion ? `${scene.motion}` : "",
-      scene.style || "cinematic film look with shallow depth of field",
-      scene.mood ? `${scene.mood} mood` : "",
-      "photorealistic, high production value, 4K quality",
-    ];
-    return parts.filter(Boolean).join(", ");
-  },
 };
 
 export const PLATFORM_SPECS = {
