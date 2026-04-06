@@ -30,6 +30,8 @@ export function StoryboardEditor() {
 
   const [assetErrors, setAssetErrors] = useState<string[]>([]);
   const [isRendering, setIsRendering] = useState(false);
+  const [isWritingPrompts, setIsWritingPrompts] = useState(false);
+  const [promptsApproved, setPromptsApproved] = useState(false);
 
   if (!storyboard) return null;
 
@@ -55,6 +57,51 @@ export function StoryboardEditor() {
       status: "pending",
     };
     addScene(newScene);
+  };
+
+  const hasCinematicScenes = storyboard.scenes.some(
+    (s) => s.layout === "hero-cinematic"
+  );
+
+  const handleApproveAndWritePrompts = async () => {
+    if (!storyboard) return;
+    setIsWritingPrompts(true);
+
+    try {
+      const res = await fetch("/api/generate-prompts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          scenes: storyboard.scenes,
+          script: storyboard.voiceover.script,
+          tone: storyboard.brief.tone,
+          brandColors: {
+            primary: storyboard.brief.brandKit.primaryColor,
+            secondary: storyboard.brief.brandKit.secondaryColor,
+          },
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Failed" }));
+        throw new Error(err.error || "Failed to generate VEO prompts");
+      }
+
+      const data = await res.json();
+
+      // Update each scene with the new VEO prompt
+      for (const scene of data.scenes) {
+        if (scene.veoPrompt) {
+          updateScene(scene.id, { veoPrompt: scene.veoPrompt });
+        }
+      }
+
+      setPromptsApproved(true);
+    } catch (e: any) {
+      setAssetErrors([e.message || "Failed to generate VEO prompts"]);
+    } finally {
+      setIsWritingPrompts(false);
+    }
   };
 
   const handleGenerateAssets = async () => {
@@ -163,6 +210,49 @@ export function StoryboardEditor() {
         <VideoPreview />
       )}
 
+      {/* Step 1: Approve storyboard & generate VEO prompts */}
+      {hasCinematicScenes && !promptsApproved && (
+        <div className="bg-indigo-950/30 border border-indigo-800/50 rounded-xl p-5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-semibold text-indigo-300">
+                Step 1: Approve Storyboard
+              </h3>
+              <p className="text-xs text-indigo-400/70 mt-1 max-w-lg">
+                Review your scenes and script above. When you&apos;re happy with the structure,
+                AgentLead will write optimized VEO 3.1 prompts for each cinematic scene —
+                tailored to your approved script for maximum visual consistency.
+              </p>
+            </div>
+            <Button
+              className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 shrink-0"
+              disabled={isWritingPrompts}
+              onClick={handleApproveAndWritePrompts}
+            >
+              {isWritingPrompts ? (
+                <span className="flex items-center gap-2">
+                  <span className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full" />
+                  Writing VEO prompts...
+                </span>
+              ) : (
+                "Approve & Write VEO Prompts"
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {promptsApproved && (
+        <div className="bg-emerald-950/30 border border-emerald-800/50 rounded-xl p-4">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span className="text-sm font-medium text-emerald-400">
+              VEO prompts written — ready to generate assets
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Error display */}
       {assetErrors.length > 0 && (
         <div className="bg-red-900/20 border border-red-800 rounded-xl p-4">
@@ -185,7 +275,7 @@ export function StoryboardEditor() {
           <Button
             variant="secondary"
             className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
-            disabled={isGenerating}
+            disabled={isGenerating || (hasCinematicScenes && !promptsApproved)}
             onClick={handleGenerateAssets}
           >
             {isGenerating ? (
