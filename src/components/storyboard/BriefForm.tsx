@@ -44,7 +44,7 @@ export function BriefForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Prompt — the main input */}
       <div>
-        <label className="block text-sm font-medium text-zinc-300 mb-2">
+        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
           What are you promoting?
         </label>
         <Textarea
@@ -56,17 +56,17 @@ Examples:
 • 'Brand awareness campaign for an eco-friendly cleaning products line'"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          className="min-h-[140px] bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-600 resize-none text-sm leading-relaxed"
+          className="min-h-[140px] bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 resize-none text-sm leading-relaxed"
           required
         />
-        <p className="text-[11px] text-zinc-600 mt-1.5">
+        <p className="text-[11px] text-zinc-500 dark:text-zinc-600 mt-1.5">
           The agent will analyze your brief and generate 3 distinct creative directions with different storytelling strategies, optimized for performance.
         </p>
       </div>
 
       {/* Platform selection */}
       <div>
-        <label className="block text-sm font-medium text-zinc-300 mb-2">
+        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
           Target Platform
         </label>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -79,7 +79,7 @@ Examples:
               className={`py-2.5 px-3 rounded-lg text-xs font-medium transition-all flex flex-col items-center gap-1 ${
                 platform === p.value
                   ? "bg-indigo-600 text-white ring-2 ring-indigo-400"
-                  : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                  : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
               }`}
             >
               <span className="text-base">{p.icon}</span>
@@ -87,15 +87,15 @@ Examples:
             </button>
           ))}
         </div>
-        <p className="text-[11px] text-zinc-600 mt-1.5">
+        <p className="text-[11px] text-zinc-500 dark:text-zinc-600 mt-1.5">
           &ldquo;Let AI Decide&rdquo; = agent picks the best platform for each concept based on your content.
         </p>
       </div>
 
       {/* Brand Colors — compact */}
       <div>
-        <label className="block text-sm font-medium text-zinc-300 mb-2">
-          Brand Colors <span className="text-zinc-600 font-normal">(optional)</span>
+        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+          Brand Colors <span className="text-zinc-500 dark:text-zinc-600 font-normal">(optional)</span>
         </label>
         <div className="flex gap-4">
           <label className="flex items-center gap-2 cursor-pointer">
@@ -106,7 +106,7 @@ Examples:
               className="w-8 h-8 rounded cursor-pointer bg-transparent border-0"
               aria-label="Primary brand color"
             />
-            <span className="text-xs text-zinc-500">Primary</span>
+            <span className="text-xs text-zinc-400 dark:text-zinc-500">Primary</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -116,7 +116,7 @@ Examples:
               className="w-8 h-8 rounded cursor-pointer bg-transparent border-0"
               aria-label="Secondary brand color"
             />
-            <span className="text-xs text-zinc-500">Secondary</span>
+            <span className="text-xs text-zinc-400 dark:text-zinc-500">Secondary</span>
           </label>
         </div>
       </div>

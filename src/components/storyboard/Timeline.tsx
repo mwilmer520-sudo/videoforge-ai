@@ -11,10 +11,10 @@ export function Timeline() {
   const totalMs = storyboard.totalDurationMs;
 
   return (
-    <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-4">
+    <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-zinc-300">Timeline</h3>
-        <span className="text-xs text-zinc-500 font-mono">
+        <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Timeline</h3>
+        <span className="text-xs text-zinc-400 dark:text-zinc-500 font-mono">
           {(totalMs / 1000).toFixed(1)}s total
         </span>
       </div>
@@ -22,7 +22,7 @@ export function Timeline() {
       {/* Scene track */}
       <div className="space-y-2">
         <div className="flex items-center gap-1">
-          <span className="text-[10px] text-zinc-500 w-16 shrink-0">
+          <span className="text-[10px] text-zinc-400 dark:text-zinc-500 w-16 shrink-0">
             Scenes
           </span>
           <div className="flex-1 flex h-10 rounded-lg overflow-hidden gap-0.5">
@@ -51,7 +51,7 @@ export function Timeline() {
                   aria-pressed={isSelected}
                   aria-label={`${scene.title}, ${(scene.durationMs / 1000).toFixed(1)} seconds`}
                   className={`${colors[i % colors.length]} relative flex items-center justify-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
-                    isSelected ? "ring-2 ring-white ring-offset-1 ring-offset-zinc-900 z-10" : "hover:brightness-110"
+                    isSelected ? "ring-2 ring-white ring-offset-1 ring-offset-white dark:ring-offset-zinc-900 z-10" : "hover:brightness-110"
                   }`}
                   style={{ width: `${widthPct}%` }}
                   title={`${scene.title} (${(scene.durationMs / 1000).toFixed(1)}s)`}
@@ -67,18 +67,18 @@ export function Timeline() {
 
         {/* Voiceover track */}
         <div className="flex items-center gap-1">
-          <span className="text-[10px] text-zinc-500 w-16 shrink-0">
+          <span className="text-[10px] text-zinc-400 dark:text-zinc-500 w-16 shrink-0">
             Voice
           </span>
           <div className="flex-1 h-6 rounded-lg overflow-hidden">
             <div
               className={`h-full flex items-center px-2 ${
                 storyboard.voiceover.status === "ready"
-                  ? "bg-emerald-900/50"
-                  : "bg-zinc-800"
+                  ? "bg-emerald-50 dark:bg-emerald-900/50"
+                  : "bg-zinc-100 dark:bg-zinc-800"
               }`}
             >
-              <span className="text-[10px] text-zinc-400 truncate">
+              <span className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
                 {storyboard.voiceover.status === "ready"
                   ? `${storyboard.voiceover.voiceName} — "${storyboard.voiceover.script.slice(0, 50)}..."`
                   : storyboard.voiceover.status === "generating"
@@ -91,18 +91,18 @@ export function Timeline() {
 
         {/* Music track */}
         <div className="flex items-center gap-1">
-          <span className="text-[10px] text-zinc-500 w-16 shrink-0">
+          <span className="text-[10px] text-zinc-400 dark:text-zinc-500 w-16 shrink-0">
             Music
           </span>
           <div className="flex-1 h-6 rounded-lg overflow-hidden">
             <div
               className={`h-full flex items-center px-2 ${
                 storyboard.music.status === "ready"
-                  ? "bg-amber-900/50"
-                  : "bg-zinc-800"
+                  ? "bg-amber-50 dark:bg-amber-900/50"
+                  : "bg-zinc-100 dark:bg-zinc-800"
               }`}
             >
-              <span className="text-[10px] text-zinc-400 truncate">
+              <span className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
                 {storyboard.music.status === "ready"
                   ? `${storyboard.music.genre} — ${storyboard.music.mood}`
                   : storyboard.music.status === "generating"
@@ -121,7 +121,7 @@ export function Timeline() {
           {Array.from(
             { length: Math.min(Math.ceil(totalMs / 5000) + 1, 20) },
             (_, i) => (
-              <span key={i} className="text-[9px] text-zinc-600 font-mono">
+              <span key={i} className="text-[9px] text-zinc-500 dark:text-zinc-600 font-mono">
                 {i * 5 < totalMs / 1000
                   ? `${Math.floor((i * 5) / 60)}:${String(
                       (i * 5) % 60

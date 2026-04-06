@@ -139,8 +139,8 @@ export function StoryboardEditor() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold text-white">Storyboard</h2>
-          <p className="text-sm text-zinc-500 mt-0.5">
+          <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Storyboard</h2>
+          <p className="text-sm text-zinc-400 dark:text-zinc-500 mt-0.5">
             {storyboard.brief.duration} &middot; {storyboard.brief.aspectRatio}{" "}
             &middot; {storyboard.brief.tone}
           </p>
@@ -148,11 +148,11 @@ export function StoryboardEditor() {
         <div className="flex items-center gap-3">
           <Badge
             variant="secondary"
-            className="bg-zinc-800 text-zinc-300 text-xs"
+            className="bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs"
           >
             {readyScenes}/{totalScenes} scenes ready
           </Badge>
-          <div className="flex bg-zinc-800 rounded-lg p-0.5" role="tablist" aria-label="View mode">
+          <div className="flex bg-zinc-100 dark:bg-zinc-800 rounded-lg p-0.5" role="tablist" aria-label="View mode">
             {(["storyboard", "preview"] as const).map((tab) => (
               <button
                 key={tab}
@@ -162,7 +162,7 @@ export function StoryboardEditor() {
                 className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all capitalize ${
                   activeTab === tab
                     ? "bg-indigo-600 text-white"
-                    : "text-zinc-400 hover:text-zinc-200"
+                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
                 }`}
               >
                 {tab}
@@ -193,7 +193,7 @@ export function StoryboardEditor() {
             <button
               onClick={handleAddScene}
               aria-label="Add new scene"
-              className="aspect-video rounded-xl border-2 border-dashed border-zinc-700 hover:border-zinc-500 flex flex-col items-center justify-center gap-2 text-zinc-600 hover:text-zinc-400 transition-colors"
+              className="aspect-video rounded-xl border-2 border-dashed border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500 flex flex-col items-center justify-center gap-2 text-zinc-500 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 transition-colors"
             >
               <span className="text-2xl">+</span>
               <span className="text-xs font-medium">Add Scene</span>
@@ -212,13 +212,13 @@ export function StoryboardEditor() {
 
       {/* Step 1: Approve storyboard & generate VEO prompts */}
       {hasCinematicScenes && !promptsApproved && (
-        <div className="bg-indigo-950/30 border border-indigo-800/50 rounded-xl p-5">
+        <div className="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-800/50 rounded-xl p-5">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h3 className="text-sm font-semibold text-indigo-300">
+              <h3 className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">
                 Step 1: Approve Storyboard
               </h3>
-              <p className="text-xs text-indigo-400/70 mt-1 max-w-lg">
+              <p className="text-xs text-indigo-600/70 dark:text-indigo-400/70 mt-1 max-w-lg">
                 Review your scenes and script above. When you&apos;re happy with the structure,
                 AgentLead will write optimized VEO 3.1 prompts for each cinematic scene —
                 tailored to your approved script for maximum visual consistency.
@@ -243,10 +243,10 @@ export function StoryboardEditor() {
       )}
 
       {promptsApproved && (
-        <div className="bg-emerald-950/30 border border-emerald-800/50 rounded-xl p-4">
+        <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-800/50 rounded-xl p-4">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span className="text-sm font-medium text-emerald-400">
+            <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
               VEO prompts written — ready to generate assets
             </span>
           </div>
@@ -255,13 +255,13 @@ export function StoryboardEditor() {
 
       {/* Error display */}
       {assetErrors.length > 0 && (
-        <div className="bg-red-900/20 border border-red-800 rounded-xl p-4">
-          <h4 className="text-sm font-semibold text-red-400 mb-2">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-800 rounded-xl p-4">
+          <h4 className="text-sm font-semibold text-red-600 dark:text-red-400 mb-2">
             Some assets failed to generate:
           </h4>
           <ul className="space-y-1">
             {assetErrors.map((err, i) => (
-              <li key={i} className="text-xs text-red-400/80">
+              <li key={i} className="text-xs text-red-600/80 dark:text-red-400/80">
                 {err}
               </li>
             ))}
@@ -270,11 +270,11 @@ export function StoryboardEditor() {
       )}
 
       {/* Action bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-zinc-900 rounded-xl border border-zinc-800 p-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
           <Button
             variant="secondary"
-            className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+            className="bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300"
             disabled={isGenerating || (hasCinematicScenes && !promptsApproved)}
             onClick={handleGenerateAssets}
           >
@@ -287,7 +287,7 @@ export function StoryboardEditor() {
               "Generate All Assets"
             )}
           </Button>
-          <span className="text-xs text-zinc-600">
+          <span className="text-xs text-zinc-500 dark:text-zinc-600">
             Calls VEO, ElevenLabs, and music generation APIs in parallel
           </span>
         </div>

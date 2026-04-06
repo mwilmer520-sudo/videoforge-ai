@@ -60,14 +60,14 @@ export function SceneCard({ scene, isSelected, onSelect }: SceneCardProps) {
   return (
     <Card
       onClick={onSelect}
-      className={`group relative overflow-hidden cursor-pointer transition-all duration-200 border-2 bg-zinc-900 ${
+      className={`group relative overflow-hidden cursor-pointer transition-all duration-200 border-2 bg-white dark:bg-zinc-900 ${
         isSelected
           ? "border-indigo-500 ring-2 ring-indigo-500/20"
-          : "border-zinc-800 hover:border-zinc-600"
+          : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600"
       }`}
     >
       {/* Thumbnail / Preview */}
-      <div className="relative aspect-video bg-zinc-800 overflow-hidden">
+      <div className="relative aspect-video bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
         {scene.thumbnailUrl || scene.videoUrl ? (
           <img
             src={scene.thumbnailUrl || scene.videoUrl}
@@ -75,12 +75,12 @@ export function SceneCard({ scene, isSelected, onSelect }: SceneCardProps) {
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-900">
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-zinc-100 dark:from-zinc-800 to-zinc-200 dark:to-zinc-900">
             <div className="text-center p-3">
               <div className="text-2xl mb-1">
                 {LAYOUT_ICONS[scene.layout] || "🎬"}
               </div>
-              <span className="text-[10px] text-zinc-500 font-medium">
+              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">
                 {LAYOUT_LABELS[scene.layout] || scene.layout}
               </span>
             </div>
@@ -89,7 +89,7 @@ export function SceneCard({ scene, isSelected, onSelect }: SceneCardProps) {
 
         {/* Status badge */}
         <div className="absolute top-2 left-2">
-          <Badge variant="secondary" className="text-[10px] gap-1 bg-black/60 backdrop-blur-sm text-white border-0">
+          <Badge variant="secondary" className="text-[10px] gap-1 bg-white/80 dark:bg-black/60 backdrop-blur-sm text-zinc-900 dark:text-white border-0">
             <span className={`w-1.5 h-1.5 rounded-full ${statusColor}`} />
             {scene.status}
           </Badge>
@@ -97,13 +97,13 @@ export function SceneCard({ scene, isSelected, onSelect }: SceneCardProps) {
 
         {/* Duration badge */}
         <div className="absolute top-2 right-2">
-          <Badge variant="secondary" className="text-[10px] bg-black/60 backdrop-blur-sm text-white border-0 font-mono">
+          <Badge variant="secondary" className="text-[10px] bg-white/80 dark:bg-black/60 backdrop-blur-sm text-zinc-900 dark:text-white border-0 font-mono">
             {(scene.durationMs / 1000).toFixed(1)}s
           </Badge>
         </div>
 
         {/* Hover actions */}
-        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+        <div className="absolute inset-0 bg-white/80 dark:bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
           <Button
             size="sm"
             variant="secondary"
@@ -142,14 +142,14 @@ export function SceneCard({ scene, isSelected, onSelect }: SceneCardProps) {
 
       {/* Info */}
       <div className="p-3">
-        <h3 className="text-sm font-semibold text-white truncate">
+        <h3 className="text-sm font-semibold text-zinc-900 dark:text-white truncate">
           {scene.title}
         </h3>
-        <p className="text-xs text-zinc-400 mt-1 line-clamp-2">
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 line-clamp-2">
           {scene.description}
         </p>
         {scene.textOverlay && (
-          <p className="text-xs text-indigo-400 mt-1.5 italic truncate">
+          <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1.5 italic truncate">
             &ldquo;{scene.textOverlay}&rdquo;
           </p>
         )}
@@ -158,25 +158,25 @@ export function SceneCard({ scene, isSelected, onSelect }: SceneCardProps) {
       {/* Edit modal */}
       {isEditing && (
         <div
-          className="absolute inset-0 bg-zinc-900/95 backdrop-blur-sm p-3 flex flex-col z-10"
+          className="absolute inset-0 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm p-3 flex flex-col z-10"
           onClick={(e) => e.stopPropagation()}
         >
-          <h4 className="text-xs font-semibold text-zinc-300 mb-2">
+          <h4 className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
             Edit Scene
           </h4>
-          <label className="text-[10px] text-zinc-500 mb-1">VEO Prompt</label>
+          <label className="text-[10px] text-zinc-400 dark:text-zinc-500 mb-1">VEO Prompt</label>
           <Textarea
             value={editPrompt}
             onChange={(e) => setEditPrompt(e.target.value)}
-            className="text-xs bg-zinc-800 border-zinc-700 text-white mb-2 flex-1 min-h-0 resize-none"
+            className="text-xs bg-zinc-100 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-white mb-2 flex-1 min-h-0 resize-none"
           />
-          <label className="text-[10px] text-zinc-500 mb-1">
+          <label className="text-[10px] text-zinc-400 dark:text-zinc-500 mb-1">
             Text Overlay
           </label>
           <Textarea
             value={editText}
             onChange={(e) => setEditText(e.target.value)}
-            className="text-xs bg-zinc-800 border-zinc-700 text-white mb-2 flex-1 min-h-0 resize-none"
+            className="text-xs bg-zinc-100 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-white mb-2 flex-1 min-h-0 resize-none"
           />
           <div className="flex gap-2">
             <Button
@@ -189,7 +189,7 @@ export function SceneCard({ scene, isSelected, onSelect }: SceneCardProps) {
             <Button
               size="sm"
               variant="ghost"
-              className="flex-1 h-7 text-xs text-zinc-400"
+              className="flex-1 h-7 text-xs text-zinc-500 dark:text-zinc-400"
               onClick={() => setIsEditing(false)}
             >
               Cancel

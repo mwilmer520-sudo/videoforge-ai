@@ -30,10 +30,10 @@ export function ConceptPicker() {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-white">
+        <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">
           Your Creative Directions
         </h2>
-        <p className="text-zinc-400 mt-2 max-w-xl mx-auto">
+        <p className="text-zinc-500 dark:text-zinc-400 mt-2 max-w-xl mx-auto">
           AgentLead analyzed your brief and crafted 3 distinct approaches.
           Each uses a different storytelling strategy optimized for performance.
           Pick the one that resonates.
@@ -87,8 +87,8 @@ function ConceptCard({
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(); } }}
       className={`group cursor-pointer transition-all duration-300 overflow-hidden border-2 bg-zinc-900 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
         isSelected
-          ? `${colorScheme.ring} ring-2 ring-offset-2 ring-offset-zinc-950 border-transparent`
-          : "border-zinc-800 hover:border-zinc-600"
+          ? `${colorScheme.ring} ring-2 ring-offset-2 ring-offset-white dark:ring-offset-zinc-950 border-transparent`
+          : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600"
       }`}
     >
       {/* Header gradient */}
@@ -126,7 +126,7 @@ function ConceptCard({
           <h4 className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">
             Why This Works
           </h4>
-          <p className="text-sm text-zinc-300 leading-relaxed">
+          <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
             {concept.whyThisWorks}
           </p>
         </div>
@@ -136,7 +136,7 @@ function ConceptCard({
           <h4 className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-1.5">
             Hook Strategy
           </h4>
-          <p className="text-xs text-zinc-400 leading-relaxed">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
             {concept.hookStrategy}
           </p>
         </div>
@@ -183,19 +183,19 @@ function ConceptCard({
         <div className="flex flex-wrap gap-1.5 pt-1">
           <Badge
             variant="secondary"
-            className="bg-zinc-800 text-zinc-400 text-[10px] capitalize"
+            className="bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 text-[10px] capitalize"
           >
             {concept.tone}
           </Badge>
           <Badge
             variant="secondary"
-            className="bg-zinc-800 text-zinc-400 text-[10px]"
+            className="bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 text-[10px]"
           >
             {concept.aspectRatio}
           </Badge>
           <Badge
             variant="secondary"
-            className="bg-zinc-800 text-zinc-400 text-[10px]"
+            className="bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 text-[10px]"
           >
             {concept.storyboard.music.genre}
           </Badge>
@@ -206,7 +206,7 @@ function ConceptCard({
           className={`w-full text-center py-2 rounded-md text-xs font-semibold transition-all ${
             isSelected
               ? `bg-gradient-to-r ${colorScheme.gradient} text-white`
-              : "bg-zinc-800 text-zinc-400"
+              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"
           }`}
         >
           {isSelected ? "Selected — Edit Below" : "Click to Use This Concept"}
