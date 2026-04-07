@@ -99,7 +99,7 @@ export async function generateAllAssets(
     );
   }
 
-  // 3. Generate music
+  // 3. Generate music (skip gracefully if no API key configured)
   if (music.status !== "ready") {
     promises.push(
       (async () => {
@@ -118,6 +118,11 @@ export async function generateAllAssets(
 
           if (!res.ok) {
             const err = await res.json().catch(() => ({ error: "Music failed" }));
+            // If no music API configured, skip silently instead of erroring
+            if (err.error?.includes("No music generation API configured")) {
+              fns.updateMusic({ status: "pending" });
+              return;
+            }
             throw new Error(err.error || "Music failed");
           }
 

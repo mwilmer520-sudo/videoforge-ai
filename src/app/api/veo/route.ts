@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     }
 
     const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:generateVideos",
+      "https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:predictLongRunning",
       {
         method: "POST",
         headers: {
@@ -25,10 +25,9 @@ export async function POST(req: Request) {
           "x-goog-api-key": apiKey,
         },
         body: JSON.stringify({
-          prompt,
-          config: {
+          instances: [{ prompt }],
+          parameters: {
             aspectRatio: aspectRatio === "9:16" ? "9:16" : "16:9",
-            durationSeconds: 8,
           },
         }),
         signal: AbortSignal.timeout(30000),
@@ -75,7 +74,8 @@ export async function POST(req: Request) {
       return Response.json({ error: "VEO generation timed out" }, { status: 504 });
     }
 
-    const video = result.response?.generatedVideos?.[0];
+    const video =
+      result.response?.generateVideoResponse?.generatedSamples?.[0];
     if (!video?.video?.uri) {
       return Response.json({ error: "No video generated" }, { status: 502 });
     }
