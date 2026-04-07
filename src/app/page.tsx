@@ -90,16 +90,16 @@ export default function Home() {
                 </span>
               </div>
               <h1 className="text-4xl font-bold text-zinc-900 dark:text-white tracking-tight">
-                Tell us what to sell.
+                Paste your URL.
                 <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-violet-500 dark:from-indigo-400 dark:to-violet-400">
-                  We&apos;ll show you how.
+                  Get 3 video concepts.
                 </span>
               </h1>
               <p className="text-zinc-500 dark:text-zinc-400 mt-4 text-lg max-w-lg mx-auto">
-                Our AI creative director generates 3 distinct video concepts
-                with proven storytelling frameworks, optimized hooks, and
-                platform-specific strategies.
+                Drop your website link — AgentLead scrapes your site, understands
+                your product, and creates 3 ready-to-produce video concepts with
+                the best storytelling frameworks for your audience.
               </p>
             </div>
 

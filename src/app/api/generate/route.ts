@@ -145,13 +145,46 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     if (!body?.prompt || typeof body.prompt !== "string" || !body.prompt.trim()) {
-      return Response.json({ error: "A brief description is required" }, { status: 400 });
-    }
-    if (!body?.brandKit?.primaryColor || !body?.brandKit?.secondaryColor) {
-      return Response.json({ error: "Brand colors are required" }, { status: 400 });
+      return Response.json({ error: "A brief description or URL is required" }, { status: 400 });
     }
     const brief = body as Brief;
+    if (!brief.brandKit) {
+      brief.brandKit = { primaryColor: "#6366f1", secondaryColor: "#8b5cf6", fontFamily: "Inter, system-ui, sans-serif" };
+    }
     const client = new Anthropic();
+
+    // Detect URLs in the prompt and scrape them for context
+    const urlRegex = /https?:\/\/[^\s,)]+/g;
+    const urls = brief.prompt.match(urlRegex) || [];
+    let scrapedContext = "";
+
+    if (urls.length > 0) {
+      const scrapeResults = await Promise.allSettled(
+        urls.slice(0, 3).map(async (url) => {
+          const baseUrl = typeof window !== "undefined" ? window.location.origin : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3456");
+          const res = await fetch(`${baseUrl}/api/scrape`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url }),
+          });
+          if (!res.ok) return null;
+          return res.json();
+        })
+      );
+
+      for (const result of scrapeResults) {
+        if (result.status === "fulfilled" && result.value) {
+          const data = result.value;
+          scrapedContext += `\n\n--- Scraped from ${data.url} ---
+Title: ${data.title || "N/A"}
+Description: ${data.description || "N/A"}
+Key headings: ${data.headings?.join(", ") || "N/A"}
+Page content: ${data.content?.slice(0, 2000) || "N/A"}
+OG Image: ${data.image || "N/A"}
+---`;
+        }
+      }
+    }
 
     const response = await client.messages.create({
       model: "claude-sonnet-4-20250514",
@@ -163,6 +196,7 @@ export async function POST(req: Request) {
           content: `Create 3 video concepts for:
 
 "${brief.prompt}"
+${scrapedContext ? `\n## WEBSITE CONTEXT (scraped from URLs in the brief)\n${scrapedContext}\n\nUse this website content to deeply understand the product, its features, value props, target audience, and messaging. The video concepts should directly reference real product features and benefits found on the site.` : ""}
 
 ${brief.platform ? `Preferred platform: ${brief.platform}` : "Pick the best platforms for this content."}
 ${brief.duration ? `Preferred duration: ${brief.duration}` : "Pick optimal durations."}
