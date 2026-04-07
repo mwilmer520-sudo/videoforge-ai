@@ -5,11 +5,13 @@ import type { Storyboard } from "../lib/types";
 
 export interface VideoProps {
   storyboard: Storyboard;
+  [key: string]: unknown;
 }
 
 const FPS = 30;
 
 export const MarketingVideo: React.FC<VideoProps> = ({ storyboard }) => {
+  if (!storyboard?.scenes) return <AbsoluteFill style={{ backgroundColor: "#0a0a0f" }} />;
   const { scenes, voiceover, music, brief } = storyboard;
   const { primaryColor, secondaryColor, fontFamily } = brief.brandKit;
 

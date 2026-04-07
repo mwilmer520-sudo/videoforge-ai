@@ -127,11 +127,45 @@ export function StoryboardEditor() {
     }
   };
 
-  const handleRenderVideo = () => {
+  const [renderProgress, setRenderProgress] = useState("");
+
+  const handleRenderVideo = async () => {
+    if (!storyboard) return;
     setIsRendering(true);
-    setActiveTab("preview");
-    // For now, switch to preview tab — server-side render pipeline is a future feature
-    setTimeout(() => setIsRendering(false), 500);
+    setRenderProgress("Bundling video composition...");
+
+    try {
+      const res = await fetch("/api/render", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ storyboard }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Render failed" }));
+        throw new Error(err.error || "Video rendering failed");
+      }
+
+      setRenderProgress("Downloading video...");
+
+      // Download the MP4
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `videoforge-${storyboard.id}.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      setRenderProgress("");
+    } catch (e: any) {
+      setAssetErrors((prev) => [...prev, `Render: ${e.message}`]);
+      setRenderProgress("");
+    } finally {
+      setIsRendering(false);
+    }
   };
 
   return (
@@ -296,7 +330,14 @@ export function StoryboardEditor() {
           disabled={!allReady || isRendering}
           onClick={handleRenderVideo}
         >
-          {isRendering ? "Preparing Preview..." : "Preview Final Video"}
+          {isRendering ? (
+            <span className="flex items-center gap-2">
+              <span className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full" />
+              {renderProgress || "Rendering..."}
+            </span>
+          ) : (
+            "Render & Download MP4"
+          )}
         </Button>
       </div>
     </div>
