@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useAppStore } from "@/lib/store";
 import { generateAllAssets, type AssetGenerationResult } from "@/lib/generate-assets";
+import { estimateCost, formatUSD } from "@/lib/cost-estimator";
 import { SceneCard } from "./SceneCard";
 import { Timeline } from "./Timeline";
 import { AudioPanel } from "./AudioPanel";
@@ -10,6 +11,7 @@ import { VideoPreview } from "./VideoPreview";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { Scene } from "@/lib/types";
+import { SCENE_DURATION_MS } from "@/lib/types";
 
 export function StoryboardEditor() {
   const {
@@ -32,6 +34,7 @@ export function StoryboardEditor() {
   const [isRendering, setIsRendering] = useState(false);
   const [isWritingPrompts, setIsWritingPrompts] = useState(false);
   const [promptsApproved, setPromptsApproved] = useState(false);
+  const [previewMode, setPreviewMode] = useState(true);
 
   if (!storyboard) return null;
 
@@ -39,10 +42,9 @@ export function StoryboardEditor() {
     (s) => s.status === "ready"
   ).length;
   const totalScenes = storyboard.scenes.length;
-  const allReady =
-    readyScenes === totalScenes &&
-    storyboard.voiceover.status === "ready" &&
-    storyboard.music.status === "ready";
+  // Render is available when all scenes are ready (VEO failures fall back to placeholders)
+  // Voiceover and music are optional
+  const allReady = readyScenes === totalScenes;
 
   const handleAddScene = () => {
     const newScene: Scene = {
@@ -50,18 +52,19 @@ export function StoryboardEditor() {
       order: storyboard.scenes.length,
       title: `Scene ${storyboard.scenes.length + 1}`,
       description: "New scene",
-      layout: "text-centered",
-      headline: "Your text here",
-      textAnimation: "fade",
-      durationMs: 5000,
+      veoPrompt: "",
+      captionText: "",
+      overlays: [],
+      durationMs: SCENE_DURATION_MS,
       status: "pending",
     };
     addScene(newScene);
   };
 
-  const hasCinematicScenes = storyboard.scenes.some(
-    (s) => s.layout === "hero-cinematic"
-  );
+  // Every scene now needs a Veo prompt under the new architecture, so the
+  // approve-prompts step always applies (no more hero-cinematic gating).
+  const hasCinematicScenes = true;
+  const cost = estimateCost(storyboard, { previewMode });
 
   const handleApproveAndWritePrompts = async () => {
     if (!storyboard) return;
@@ -73,6 +76,7 @@ export function StoryboardEditor() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           scenes: storyboard.scenes,
+          characterSheet: storyboard.characterSheet,
           script: storyboard.voiceover.script,
           tone: storyboard.brief.tone,
           brandColors: {
@@ -110,12 +114,16 @@ export function StoryboardEditor() {
     setIsGenerating(true);
 
     try {
-      const result: AssetGenerationResult = await generateAllAssets(storyboard, {
-        updateScene,
-        updateVoiceover,
-        updateMusic,
-        setGenerationStep,
-      });
+      const result: AssetGenerationResult = await generateAllAssets(
+        storyboard,
+        {
+          updateScene,
+          updateVoiceover,
+          updateMusic,
+          setGenerationStep,
+        },
+        { previewMode }
+      );
 
       if (result.errors.length > 0) {
         setAssetErrors(result.errors);
@@ -138,7 +146,7 @@ export function StoryboardEditor() {
       const res = await fetch("/api/render", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ storyboard }),
+        body: JSON.stringify({ storyboard, previewMode }),
       });
 
       if (!res.ok) {
@@ -303,6 +311,50 @@ export function StoryboardEditor() {
         </div>
       )}
 
+      {/* Cost preview + preview-mode toggle */}
+      <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-3">
+              <h4 className="text-sm font-semibold text-zinc-900 dark:text-white">
+                Estimated cost
+              </h4>
+              <span
+                className={`text-2xl font-bold ${
+                  previewMode
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-indigo-600 dark:text-indigo-400"
+                }`}
+              >
+                {formatUSD(cost.total)}
+              </span>
+            </div>
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-500 mt-1">
+              {previewMode ? (
+                <>
+                  Preview mode — no Veo calls. Captions + overlays only over gradient placeholders.
+                </>
+              ) : (
+                <>
+                  {cost.veoClipCount} Veo clips (${(cost.veo).toFixed(2)}) · voice (${cost.voice.toFixed(2)}) · music (${cost.music.toFixed(2)}) · Claude (${cost.claude.toFixed(2)})
+                </>
+              )}
+            </p>
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={previewMode}
+              onChange={(e) => setPreviewMode(e.target.checked)}
+              className="w-4 h-4 rounded accent-indigo-600"
+            />
+            <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+              Preview render (no Veo, free)
+            </span>
+          </label>
+        </div>
+      </div>
+
       {/* Action bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
@@ -317,12 +369,16 @@ export function StoryboardEditor() {
                 <span className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full" />
                 {generationStep || "Generating..."}
               </span>
+            ) : previewMode ? (
+              "Generate voiceover + music (skip Veo)"
             ) : (
               "Generate All Assets"
             )}
           </Button>
           <span className="text-xs text-zinc-500 dark:text-zinc-600">
-            Calls VEO, ElevenLabs, and music generation APIs in parallel
+            {previewMode
+              ? "Generates ElevenLabs voice + music. Veo skipped — Remotion will render gradients."
+              : "Calls VEO, ElevenLabs, and music generation APIs"}
           </span>
         </div>
         <Button
@@ -335,6 +391,8 @@ export function StoryboardEditor() {
               <span className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full" />
               {renderProgress || "Rendering..."}
             </span>
+          ) : previewMode ? (
+            "Render preview MP4 (free)"
           ) : (
             "Render & Download MP4"
           )}

@@ -14,24 +14,43 @@ export interface AssetGenerationResult {
   errors: string[];
 }
 
+export interface GenerateOptions {
+  /**
+   * If true, skip the Veo loop entirely. Voice and music still generate.
+   * Used by the "Preview render (no Veo, free)" toggle.
+   */
+  previewMode?: boolean;
+}
+
 export async function generateAllAssets(
   storyboard: Storyboard,
-  fns: UpdateFn
+  fns: UpdateFn,
+  options: GenerateOptions = {}
 ): Promise<AssetGenerationResult> {
   const { scenes, voiceover, music, brief } = storyboard;
   const errors: string[] = [];
   const promises: Promise<void>[] = [];
 
-  // 1. Generate video clips only for hero-cinematic scenes via VEO
-  for (const scene of scenes) {
-    if (scene.status === "ready") continue;
+  // ===========================================================================
+  // 1. Veo footage for EVERY scene (sequentially, to chain frame continuity)
+  // ===========================================================================
+  // We do this serially rather than in parallel because each scene's Veo call
+  // optionally uses the previous scene's last frame for image-to-video
+  // conditioning. This is how we get the illusion of continuous footage across
+  // multiple 8-second clips.
+  if (!options.previewMode) {
+    promises.push(
+      (async () => {
+        let previousLastFrame: string | undefined;
+        for (const scene of scenes) {
+          if (scene.status === "ready") {
+            // Skip already-rendered scenes (allows partial regeneration)
+            previousLastFrame = scene.lastFrameImageUrl;
+            continue;
+          }
 
-    // Only hero-cinematic scenes need VEO; others are Remotion-rendered
-    if (scene.layout === "hero-cinematic" && scene.veoPrompt) {
-      promises.push(
-        (async () => {
           fns.updateScene(scene.id, { status: "generating" });
-          fns.setGenerationStep(`Generating clip: ${scene.title}...`);
+          fns.setGenerationStep(`Generating Veo clip ${scene.order + 1}/${scenes.length}: ${scene.title}...`);
 
           try {
             const res = await fetch("/api/veo", {
@@ -40,6 +59,7 @@ export async function generateAllAssets(
               body: JSON.stringify({
                 prompt: scene.veoPrompt,
                 aspectRatio: brief.aspectRatio,
+                firstFrameImageUrl: previousLastFrame, // chain from prior scene
               }),
             });
 
@@ -51,23 +71,29 @@ export async function generateAllAssets(
             const data = await res.json();
             fns.updateScene(scene.id, {
               videoUrl: data.videoUrl,
-              thumbnailUrl: data.thumbnailUrl,
+              lastFrameImageUrl: data.lastFrameImageUrl,
               status: "ready",
             });
+            previousLastFrame = data.lastFrameImageUrl;
           } catch (e: any) {
-            const msg = `Scene "${scene.title}": ${e.message || "VEO failed"}`;
+            const msg = `Scene "${scene.title}": ${e.message || "VEO failed"} (using gradient fallback)`;
             errors.push(msg);
-            fns.updateScene(scene.id, { status: "error" });
+            // Fall back to ready with no video — Remotion will render gradient placeholder
+            fns.updateScene(scene.id, { status: "ready" });
           }
-        })()
-      );
-    } else {
-      // Non-VEO scenes are rendered by Remotion — mark as ready
+        }
+      })()
+    );
+  } else {
+    // Preview mode: mark every scene ready immediately, no Veo calls
+    for (const scene of scenes) {
       fns.updateScene(scene.id, { status: "ready" });
     }
   }
 
-  // 2. Generate voiceover
+  // ===========================================================================
+  // 2. ElevenLabs voiceover (parallel with Veo)
+  // ===========================================================================
   if (voiceover.status !== "ready") {
     promises.push(
       (async () => {
@@ -99,7 +125,9 @@ export async function generateAllAssets(
     );
   }
 
-  // 3. Generate music (skip gracefully if no API key configured)
+  // ===========================================================================
+  // 3. Background music (parallel with Veo + voice)
+  // ===========================================================================
   if (music.status !== "ready") {
     promises.push(
       (async () => {

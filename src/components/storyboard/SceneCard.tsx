@@ -8,28 +8,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAppStore } from "@/lib/store";
 import type { Scene } from "@/lib/types";
 
-const LAYOUT_ICONS: Record<string, string> = {
-  "presenter-full": "🧑‍💼",
-  "presenter-left-ui-right": "🧑‍💻",
-  "ui-full-with-callouts": "🖥️",
-  "ui-transition-flow": "🔄",
-  "metrics-grid": "📊",
-  "hero-cinematic": "🎬",
-  "text-centered": "✍️",
-  "cta-screen": "🎯",
-};
-
-const LAYOUT_LABELS: Record<string, string> = {
-  "presenter-full": "Presenter",
-  "presenter-left-ui-right": "Presenter + UI",
-  "ui-full-with-callouts": "UI Demo",
-  "ui-transition-flow": "UI Flow",
-  "metrics-grid": "Metrics",
-  "hero-cinematic": "Cinematic",
-  "text-centered": "Bold Text",
-  "cta-screen": "CTA",
-};
-
 interface SceneCardProps {
   scene: Scene;
   isSelected: boolean;
@@ -39,8 +17,8 @@ interface SceneCardProps {
 export function SceneCard({ scene, isSelected, onSelect }: SceneCardProps) {
   const { updateScene, removeScene } = useAppStore();
   const [isEditing, setIsEditing] = useState(false);
-  const [editText, setEditText] = useState(scene.textOverlay || "");
-  const [editPrompt, setEditPrompt] = useState(scene.veoPrompt);
+  const [editCaption, setEditCaption] = useState(scene.captionText || "");
+  const [editPrompt, setEditPrompt] = useState(scene.veoPrompt || "");
 
   const statusColor = {
     pending: "bg-zinc-600",
@@ -51,11 +29,13 @@ export function SceneCard({ scene, isSelected, onSelect }: SceneCardProps) {
 
   const handleSaveEdit = () => {
     updateScene(scene.id, {
-      textOverlay: editText,
+      captionText: editCaption,
       veoPrompt: editPrompt,
     });
     setIsEditing(false);
   };
+
+  const overlayCount = scene.overlays?.length || 0;
 
   return (
     <Card
@@ -68,20 +48,19 @@ export function SceneCard({ scene, isSelected, onSelect }: SceneCardProps) {
     >
       {/* Thumbnail / Preview */}
       <div className="relative aspect-video bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
-        {scene.thumbnailUrl || scene.videoUrl ? (
-          <img
-            src={scene.thumbnailUrl || scene.videoUrl}
-            alt={scene.title}
+        {scene.videoUrl ? (
+          <video
+            src={scene.videoUrl}
             className="w-full h-full object-cover"
+            muted
+            playsInline
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-zinc-100 dark:from-zinc-800 to-zinc-200 dark:to-zinc-900">
             <div className="text-center p-3">
-              <div className="text-2xl mb-1">
-                {LAYOUT_ICONS[scene.layout] || "🎬"}
-              </div>
+              <div className="text-2xl mb-1">🎬</div>
               <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">
-                {LAYOUT_LABELS[scene.layout] || scene.layout}
+                Veo3 clip
               </span>
             </div>
           </div>
@@ -98,9 +77,18 @@ export function SceneCard({ scene, isSelected, onSelect }: SceneCardProps) {
         {/* Duration badge */}
         <div className="absolute top-2 right-2">
           <Badge variant="secondary" className="text-[10px] bg-white/80 dark:bg-black/60 backdrop-blur-sm text-zinc-900 dark:text-white border-0 font-mono">
-            {(scene.durationMs / 1000).toFixed(1)}s
+            {(scene.durationMs / 1000).toFixed(0)}s
           </Badge>
         </div>
+
+        {/* Overlay count badge */}
+        {overlayCount > 0 && (
+          <div className="absolute bottom-2 right-2">
+            <Badge variant="secondary" className="text-[10px] gap-1 bg-indigo-600/90 backdrop-blur-sm text-white border-0">
+              {overlayCount} overlay{overlayCount > 1 ? "s" : ""}
+            </Badge>
+          </div>
+        )}
 
         {/* Hover actions */}
         <div className="absolute inset-0 bg-white/80 dark:bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
@@ -148,9 +136,14 @@ export function SceneCard({ scene, isSelected, onSelect }: SceneCardProps) {
         <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 line-clamp-2">
           {scene.description}
         </p>
-        {scene.textOverlay && (
-          <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1.5 italic truncate">
-            &ldquo;{scene.textOverlay}&rdquo;
+        {scene.captionText && (
+          <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1.5 italic line-clamp-2">
+            &ldquo;{scene.captionText}&rdquo;
+          </p>
+        )}
+        {scene.veoPrompt && (
+          <p className="text-[10px] text-zinc-400 dark:text-zinc-600 mt-1 line-clamp-1 font-mono">
+            Veo: {scene.veoPrompt}
           </p>
         )}
       </div>
@@ -171,11 +164,11 @@ export function SceneCard({ scene, isSelected, onSelect }: SceneCardProps) {
             className="text-xs bg-zinc-100 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-white mb-2 flex-1 min-h-0 resize-none"
           />
           <label className="text-[10px] text-zinc-400 dark:text-zinc-500 mb-1">
-            Text Overlay
+            Caption text (slice of narration)
           </label>
           <Textarea
-            value={editText}
-            onChange={(e) => setEditText(e.target.value)}
+            value={editCaption}
+            onChange={(e) => setEditCaption(e.target.value)}
             className="text-xs bg-zinc-100 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-white mb-2 flex-1 min-h-0 resize-none"
           />
           <div className="flex gap-2">

@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# cached veo clips from render pipeline
+public/temp/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

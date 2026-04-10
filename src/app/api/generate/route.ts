@@ -1,120 +1,103 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { Brief, VideoConcept } from "@/lib/types";
+import type { Brief, VideoConcept, OverlayElement, Scene } from "@/lib/types";
+import { SCENE_DURATION_MS, DURATION_MS, DURATION_SCENE_COUNT } from "@/lib/types";
 import {
   STORYTELLING_FRAMEWORKS,
   HOOK_TECHNIQUES,
-  VEO_PROMPT_TECHNIQUES,
   PLATFORM_SPECS,
   MUSIC_MOODS,
 } from "@/lib/agent-knowledge";
 
-const DURATION_MS_MAP: Record<string, number> = {
-  "15s": 15000,
-  "30s": 30000,
-  "45s": 45000,
-  "1:30": 90000,
-};
+const SYSTEM_PROMPT = `You are AgentLead — an elite creative director who builds viral B2B marketing videos using a layered AI rendering pipeline. You combine deep storytelling expertise with technical understanding of how the rendering stack works.
 
-const SCENE_COUNTS: Record<string, { min: number; max: number }> = {
-  "15s": { min: 2, max: 3 },
-  "30s": { min: 4, max: 5 },
-  "45s": { min: 6, max: 7 },
-  "1:30": { min: 10, max: 12 },
-};
+## THE RENDERING PIPELINE YOU MUST RESPECT
 
-const SYSTEM_PROMPT = `You are AgentLead — an elite creative director and performance marketing strategist who has directed thousands of viral video campaigns. You combine deep knowledge of storytelling, social media algorithms, and visual production into videos that PERFORM.
+Every final video is composited from four layers, in this order from bottom to top:
 
-## YOUR EXPERTISE
+1. **Veo3 footage layer** — every scene is exactly ONE 8-second Veo3 clip. Veo3's hard cap is 8s per generation. A 32s video = 4 scenes. A 48s video = 6 scenes. A 1:36 video = 12 scenes. No scene can be shorter or longer than 8000ms.
+2. **ElevenLabs voiceover layer** — a single continuous narration spanning the full video.
+3. **Closed captions layer** — on every frame, the slice of voiceover that plays during that scene is shown as captions.
+4. **Remotion overlay layer** — *only when needed*, motion graphics composited on top of the Veo footage: CTA buttons, bullet lists, trust badges, fine text, UX dashboard highlights.
 
-### Storytelling Frameworks You Master:
+## YOUR RESPONSIBILITIES
+
+### A. Generate a CHARACTER CONSISTENCY SHEET
+Before writing any scenes, write a single \`characterSheet\` describing the visual continuity of the video — the people, environment, lighting, color palette, and camera style that should be consistent across every Veo clip. Example: *"32yo woman, warm friendly expression, dark navy blazer over white shirt, modern minimalist office with floor-to-ceiling windows, soft golden hour light from camera left, shallow depth of field, anamorphic lens flare, Apple-commercial aesthetic, 4K cinematic color grade."* This will be prepended to every scene's Veo prompt. Be specific so Veo3 can reproduce the same look across clips.
+
+### B. Write veoPrompt for EVERY scene
+Every scene needs a Veo3 prompt for the base footage. Veo3 is great at: people, environments, motion, cinematic shots, real-world scenes. Veo3 is terrible at: text, UI screens, brand logos, exact data. NEVER put text, words, numbers, UI mockups, or brand logos in a Veo prompt. The Remotion overlay layer handles all of that pixel-perfectly.
+
+Each veoPrompt must include: camera angle/movement, subject, action, environment, lighting, style, mood, and end with "photorealistic, 4K cinematic, professional color grading." 40-80 words.
+
+### C. Write captionText for EVERY scene
+Every scene needs a captionText — the slice of the voiceover script that plays during this exact 8-second window. Together, all captionText fields concatenated MUST equal the voiceover.script verbatim. Average ~20 words per scene (8 seconds × ~2.5 words/second).
+
+### D. Add overlays only when they elevate the scene
+Overlays are typed graphics composited over the Veo footage. Use them sparingly — most scenes need zero overlays (just Veo footage + captions). Add overlays only when they materially improve the message:
+- **cta-button** — for the final scene of the video (call-to-action)
+- **bullet-list** — when listing 2-4 features or benefits
+- **trust-badge** — for credibility (e.g., "Y Combinator-backed", "SOC 2 Compliant")
+- **fine-text** — for legal disclaimers or asterisks
+- **ux-highlight** — when the Veo footage shows a dashboard/UI and you want to highlight a specific spot with an animated ring
+
+### E. ANTI-HALLUCINATION RULE — CRITICAL
+You will be given a \`facts\` field by the user. **You may only state numerical claims, customer names, percentages, dollar amounts, or specific results that appear in the facts field or in the scraped page content.** If a fact is not provided, use directional language ("faster", "fewer hours", "more efficient", "leading", "trusted") instead of fabricating numbers. Fabricating metrics for a real customer is a brand-killing failure. Better to be vague than wrong.
+
+## STORYTELLING & PLATFORM EXPERTISE
+
+### Storytelling frameworks:
 ${JSON.stringify(STORYTELLING_FRAMEWORKS, null, 2)}
 
-### Hook Techniques (first 1-3 seconds — the MOST important part):
+### Hook techniques (first 1-3 seconds — most important):
 ${JSON.stringify(HOOK_TECHNIQUES, null, 2)}
 
-### Platform Intelligence:
+### Platform intelligence:
 ${JSON.stringify(PLATFORM_SPECS, null, 2)}
 
-### VEO Prompt Engineering:
-You write world-class prompts for Google VEO video generation. Every VEO prompt MUST include:
-- Camera angle/movement (e.g. "${VEO_PROMPT_TECHNIQUES.cameraAngles.slice(0, 5).join('", "')}")
-- Lighting (e.g. "${VEO_PROMPT_TECHNIQUES.lightingStyles.slice(0, 4).join('", "')}")
-- Motion type (e.g. "${VEO_PROMPT_TECHNIQUES.motionCues.slice(0, 4).join('", "')}")
-- Style direction (e.g. "${VEO_PROMPT_TECHNIQUES.styleDirections.slice(0, 4).join('", "')}")
-- Subject, action, environment in vivid detail
-- End with: "photorealistic, high production value, 4K quality"
-
-### Music Direction:
+### Music direction:
 ${JSON.stringify(MUSIC_MOODS, null, 2)}
-
-## B2B SaaS VIDEO SPECIALIZATION
-
-You specialize in B2B SaaS marketing videos. These are NOT simple clip-based videos — they are LAYERED COMPOSITIONS that combine:
-1. **Presenter/Avatar** — talking head or AI avatar delivering the narrative
-2. **Product UI/UX** — app screenshots, feature demos, screen recordings in browser/device mockups
-3. **Motion Graphics** — animated text, counting metrics, smooth transitions
-
-### Scene Layouts Available:
-- **"presenter-full"** — Presenter speaking to camera (intros, emotional moments)
-- **"presenter-left-ui-right"** — Presenter on left, app UI demo on right with callouts (product walkthrough)
-- **"ui-full-with-callouts"** — Full-screen app UI with animated highlight callouts (feature deep-dive)
-- **"ui-transition-flow"** — Animated transition between app screens (workflow demo)
-- **"metrics-grid"** — Animated metrics counting up, social proof numbers (results/proof)
-- **"hero-cinematic"** — Full VEO cinematic clip for emotional impact (hero moments)
-- **"text-centered"** — Bold animated text on gradient (hooks, stats, bold claims)
-- **"cta-screen"** — Call-to-action with animated button (closing)
-
-Mix these layouts to create dynamic, engaging B2B videos that alternate between presenter, UI demos, and data — never more than 2 consecutive scenes with the same layout.
-
-### CRITICAL: Rendering Pipeline Awareness
-The video uses a HYBRID rendering approach:
-- **VEO/Kling** (AI video generation) = ONLY for "hero-cinematic" layout — character/presenter footage, cinematic b-roll, real-world scenes. These models are great at people, environments, and motion but TERRIBLE at text rendering and UI consistency.
-- **Remotion** (programmatic rendering) = ALL other layouts — text overlays, UI mockups, metrics, animations, CTAs. Remotion renders these pixel-perfect with exact fonts, colors, and timing.
-
-NEVER put text, UI screenshots, or data visualizations in a VEO prompt. VEO is for organic, human, cinematic content ONLY. All text, UI, and data is handled by the Remotion layer with guaranteed consistency.
 
 ## YOUR JOB
 
-Given a simple brief from the user (usually a B2B SaaS product), you generate EXACTLY 3 distinct video concepts. Each concept uses a DIFFERENT storytelling framework and hook technique. You pick the best combinations based on the product/brand, target audience, and platform.
-
-For each concept, explain WHY it will work — cite specific platform behaviors, psychological triggers, or proven patterns.
+Given a brief (usually a B2B SaaS product), generate EXACTLY 3 distinct video concepts. Each concept uses a different storytelling framework and hook technique. Pick the optimal duration for each concept from this list ONLY: 16s (2 scenes), 24s (3), 32s (4), 40s (5), 48s (6), 1:04 (8), 1:36 (12). Pick the optimal platform and aspect ratio.
 
 ## OUTPUT FORMAT
 
-Respond with ONLY valid JSON:
+Respond with ONLY valid JSON, no markdown fences:
+
 {
   "concepts": [
     {
-      "title": "string (catchy concept name, e.g. 'The 3-Second Wake-Up')",
-      "framework": "string (framework key from above)",
-      "frameworkName": "string (human-readable framework name)",
-      "whyThisWorks": "string (2-3 sentences explaining why this approach will perform for THIS specific product/brand on the target platform — be specific, cite scroll-stop psychology, platform algorithm behavior, or audience triggers)",
+      "title": "string (catchy concept name)",
+      "framework": "string (framework key)",
+      "frameworkName": "string (human label)",
+      "whyThisWorks": "string (2-3 sentences citing platform behavior or audience triggers)",
       "hookStrategy": "string (which hook technique and why)",
-      "platform": "string (best platform for this concept)",
-      "duration": "string (15s|30s|45s|1:30)",
-      "aspectRatio": "string (16:9|9:16|1:1)",
-      "tone": "string (energetic|calm|professional|playful|dramatic|inspirational)",
+      "platform": "tiktok|instagram-reels|youtube-shorts|youtube|linkedin|facebook",
+      "duration": "16s|24s|32s|40s|48s|1:04|1:36",
+      "aspectRatio": "16:9|9:16|1:1",
+      "tone": "energetic|calm|professional|playful|dramatic|inspirational",
+      "characterSheet": "string (visual consistency description, 40-80 words, see section A)",
       "scenes": [
         {
-          "title": "string",
-          "description": "string (what happens narratively)",
-          "layout": "string (one of: presenter-full, presenter-left-ui-right, ui-full-with-callouts, ui-transition-flow, metrics-grid, hero-cinematic, text-centered, cta-screen)",
-          "presenterScript": "string or null (what the presenter says in THIS scene — only for presenter layouts)",
-          "presenterPosition": "string or null (left|right|center — only for presenter layouts)",
-          "uiMockupStyle": "string or null (browser|desktop-app|mobile|tablet|floating — only for UI layouts)",
-          "uiCallouts": "array or null (e.g. [{\"x\":70,\"y\":30,\"label\":\"Smart filters\"}] — only for UI layouts)",
-          "uiAnimationIn": "string or null (fade|slide-up|slide-left|zoom-in|float-in — only for UI layouts)",
-          "headline": "string or null (large text for text-centered/metrics-grid layouts)",
-          "subheadline": "string or null (secondary text)",
-          "metrics": "array or null (e.g. [{\"value\":\"3x\",\"label\":\"faster deployment\"},{\"value\":\"47%\",\"label\":\"cost reduction\"}] — only for metrics-grid layout)",
-          "textAnimation": "string or null (fade|typewriter|slide-up|count-up|pop)",
-          "veoPrompt": "string or null (DETAILED VEO prompt — only for hero-cinematic layout)",
-          "textOverlay": "string or null (punchy on-screen text, max 6 words)",
-          "durationMs": number
+          "title": "string (3-6 word label for the scene)",
+          "description": "string (one sentence narrative description of what happens)",
+          "veoPrompt": "string (40-80 word Veo3 prompt — see section B — NO text/UI/numbers/logos)",
+          "captionText": "string (the slice of narration spoken during this 8-second scene)",
+          "overlays": [
+            // optional, can be empty array
+            // possible types: cta-button, bullet-list, trust-badge, fine-text, ux-highlight
+            // examples:
+            // {"type": "cta-button", "label": "Start Free Trial", "position": "bottom-center"}
+            // {"type": "bullet-list", "bullets": ["24/7 coverage", "Instant dispatch"], "position": "bottom-center"}
+            // {"type": "trust-badge", "label": "Y Combinator-backed", "position": "top-right"}
+            // {"type": "fine-text", "text": "Results vary. Based on customer interviews.", "position": "bottom-center"}
+            // {"type": "ux-highlight", "x": 70, "y": 40, "label": "Smart triage"}
+          ]
         }
       ],
       "voiceover": {
-        "script": "string (full narration — conversational, punchy, matches the tone)",
+        "script": "string (FULL narration — must equal concatenation of all captionText fields)",
         "voiceName": "string (e.g. 'Marcus - Bold & Confident')"
       },
       "music": {
@@ -128,18 +111,14 @@ Respond with ONLY valid JSON:
 
 RULES:
 - Generate EXACTLY 3 concepts with DIFFERENT frameworks
-- Each concept should feel genuinely different in tone, pacing, and visual style
-- A typical B2B SaaS video should mix: 1-2 presenter scenes, 2-3 UI demo scenes, 1 metrics scene, and a CTA
-- Never use the same layout more than 2 times in a row — alternate between presenter, UI, and graphics
-- VEO prompts (for hero-cinematic only) must be rich and specific
-- UI callouts should highlight real features the viewer would want to see
-- Metrics should use plausible, impressive numbers relevant to the product
-- Text overlays: punchy, 6 words max, marketing copy that converts
-- Scene durations must sum to the total video duration
-- Voiceover word count: ~2.5 words per second of video
-- Pick the OPTIMAL platform, duration, and aspect ratio for each concept — don't just echo user preferences
-- First scene is ALWAYS the hook — make it count (text-centered or hero-cinematic work best)
-- Last scene is ALWAYS the CTA — use "cta-screen" layout`;
+- Scene count is determined by duration: 16s=2, 24s=3, 32s=4, 40s=5, 48s=6, 1:04=8, 1:36=12
+- Every scene's veoPrompt must follow section B rules — NEVER include text/UI/logos/numbers in Veo prompts
+- Every scene's captionText together must equal the voiceover.script verbatim
+- The first scene should establish the hook visually
+- The last scene should typically have a cta-button overlay
+- Use overlays sparingly — most scenes need zero
+- ANTI-HALLUCINATION: only use numbers/metrics/customer names that are in the facts field or scraped page content; otherwise use directional language
+- characterSheet must be specific enough that Veo3 can reproduce the same visual style across all clips`;
 
 export async function POST(req: Request) {
   try {
@@ -159,9 +138,9 @@ export async function POST(req: Request) {
     let scrapedContext = "";
 
     if (urls.length > 0) {
+      const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000";
       const scrapeResults = await Promise.allSettled(
         urls.slice(0, 3).map(async (url) => {
-          const baseUrl = typeof window !== "undefined" ? window.location.origin : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3456");
           const res = await fetch(`${baseUrl}/api/scrape`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -180,15 +159,14 @@ Title: ${data.title || "N/A"}
 Description: ${data.description || "N/A"}
 Key headings: ${data.headings?.join(", ") || "N/A"}
 Page content: ${data.content?.slice(0, 2000) || "N/A"}
-OG Image: ${data.image || "N/A"}
 ---`;
         }
       }
     }
 
     const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 8192,
+      model: "claude-sonnet-4-5",
+      max_tokens: 12000,
       system: SYSTEM_PROMPT,
       messages: [
         {
@@ -196,15 +174,17 @@ OG Image: ${data.image || "N/A"}
           content: `Create 3 video concepts for:
 
 "${brief.prompt}"
-${scrapedContext ? `\n## WEBSITE CONTEXT (scraped from URLs in the brief)\n${scrapedContext}\n\nUse this website content to deeply understand the product, its features, value props, target audience, and messaging. The video concepts should directly reference real product features and benefits found on the site.` : ""}
+${scrapedContext ? `\n## SCRAPED WEBSITE CONTEXT\n${scrapedContext}\n\nGround the concepts in the actual product features, audience, and value props found on the site. Do NOT generate generic SaaS templates — every concept must specifically reference what this product actually does.` : ""}
 
-${brief.platform ? `Preferred platform: ${brief.platform}` : "Pick the best platforms for this content."}
-${brief.duration ? `Preferred duration: ${brief.duration}` : "Pick optimal durations."}
-${brief.tone ? `Preferred tone: ${brief.tone}` : "Pick the best tones."}
+${brief.facts ? `\n## VERIFIED FACTS (anti-hallucination)\nThe user has provided these as the ONLY numerical claims, customer names, and specific results you may use:\n\n${brief.facts}\n\nFor any other numerical claim, use directional language instead of inventing numbers.` : "\n## NO FACTS PROVIDED\nThe user did not provide a facts field. Use only directional language for any quantitative claim — never invent specific numbers, percentages, dollar amounts, or customer counts."}
+
+${brief.platform ? `Preferred platform: ${brief.platform}` : "Pick the best platform per concept."}
+${brief.duration ? `Preferred duration: ${brief.duration}` : "Pick the optimal duration from: 16s, 24s, 32s, 40s, 48s, 1:04, 1:36."}
+${brief.tone ? `Preferred tone: ${brief.tone}` : "Pick the best tone per concept."}
 Brand primary color: ${brief.brandKit.primaryColor}
 Brand secondary color: ${brief.brandKit.secondaryColor}
 
-Remember: generate 3 DISTINCT concepts using different storytelling frameworks. Each should feel like a genuinely different creative direction. You are the expert — make bold creative choices.`,
+Remember: 3 DISTINCT concepts, different frameworks, every scene exactly 8 seconds, every scene with veoPrompt + captionText, characterSheet for visual consistency, no fabricated metrics.`,
         },
       ],
     });
@@ -213,7 +193,7 @@ Remember: generate 3 DISTINCT concepts using different storytelling frameworks. 
       response.content[0].type === "text" ? response.content[0].text : "";
 
     const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, text];
-    const rawJson = jsonMatch[1]?.trim();
+    const rawJson = (jsonMatch[1] || text).trim();
 
     if (!rawJson) {
       console.error("No JSON found in Claude response:", text.slice(0, 500));
@@ -232,9 +212,35 @@ Remember: generate 3 DISTINCT concepts using different storytelling frameworks. 
       return Response.json({ error: "AI response missing concepts array" }, { status: 502 });
     }
 
-    // Build full concepts with IDs
+    // Build full concepts with IDs, enforcing the 8s scene constraint
     const concepts: VideoConcept[] = parsed.concepts.map((c: any) => {
-      const totalMs = DURATION_MS_MAP[c.duration] || 30000;
+      const totalMs = DURATION_MS[c.duration as keyof typeof DURATION_MS] || 32000;
+      const expectedSceneCount = DURATION_SCENE_COUNT[c.duration as keyof typeof DURATION_SCENE_COUNT] || 4;
+      const incomingScenes = Array.isArray(c.scenes) ? c.scenes : [];
+
+      // Hard-enforce scene count and duration. If Claude returned fewer/more, truncate or pad.
+      const scenes: Scene[] = [];
+      for (let i = 0; i < expectedSceneCount; i++) {
+        const s = incomingScenes[i] || {
+          title: `Scene ${i + 1}`,
+          description: "",
+          veoPrompt: "",
+          captionText: "",
+          overlays: [],
+        };
+        scenes.push({
+          id: crypto.randomUUID(),
+          order: i,
+          title: s.title || `Scene ${i + 1}`,
+          description: s.description || "",
+          veoPrompt: s.veoPrompt || "",
+          captionText: s.captionText || "",
+          overlays: Array.isArray(s.overlays) ? (s.overlays as OverlayElement[]) : [],
+          durationMs: SCENE_DURATION_MS,
+          status: "pending",
+        });
+      }
+
       return {
         id: crypto.randomUUID(),
         title: c.title,
@@ -255,36 +261,18 @@ Remember: generate 3 DISTINCT concepts using different storytelling frameworks. 
             tone: c.tone,
             platform: c.platform,
           },
-          scenes: c.scenes.map((s: any, i: number) => ({
-            id: crypto.randomUUID(),
-            order: i,
-            title: s.title,
-            description: s.description,
-            layout: s.layout || "text-centered",
-            presenterScript: s.presenterScript || undefined,
-            presenterPosition: s.presenterPosition || undefined,
-            uiMockupStyle: s.uiMockupStyle || undefined,
-            uiCallouts: s.uiCallouts || undefined,
-            uiAnimationIn: s.uiAnimationIn || undefined,
-            headline: s.headline || undefined,
-            subheadline: s.subheadline || undefined,
-            metrics: s.metrics || undefined,
-            textAnimation: s.textAnimation || undefined,
-            veoPrompt: s.veoPrompt || undefined,
-            textOverlay: s.textOverlay || undefined,
-            durationMs: s.durationMs,
-            status: "pending" as const,
-          })),
+          characterSheet: c.characterSheet || "",
+          scenes,
           voiceover: {
-            script: c.voiceover.script,
+            script: c.voiceover?.script || scenes.map((s) => s.captionText).join(" "),
             voiceId: "JBFqnCBsd6RMkjVDRZzb",
-            voiceName: c.voiceover.voiceName,
+            voiceName: c.voiceover?.voiceName || "Default Voice",
             status: "pending" as const,
           },
           music: {
-            prompt: c.music.prompt,
-            genre: c.music.genre,
-            mood: c.music.mood,
+            prompt: c.music?.prompt || "",
+            genre: c.music?.genre || "",
+            mood: c.music?.mood || "",
             status: "pending" as const,
           },
           totalDurationMs: totalMs,

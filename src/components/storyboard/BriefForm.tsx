@@ -27,6 +27,7 @@ export function BriefForm({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [primaryColor, setPrimaryColor] = useState("#6366f1");
   const [secondaryColor, setSecondaryColor] = useState("#8b5cf6");
+  const [facts, setFacts] = useState("");
 
   const isUrl = /^https?:\/\//i.test(input.trim());
 
@@ -35,6 +36,7 @@ export function BriefForm({
     onSubmit({
       prompt: input.trim(),
       platform: platform === "auto" ? undefined : platform,
+      facts: facts.trim() || undefined,
       brandKit: {
         primaryColor,
         secondaryColor,
@@ -124,6 +126,22 @@ export function BriefForm({
                 }
               }}
             />
+          </div>
+
+          {/* Verified Facts (anti-hallucination) */}
+          <div>
+            <label className="block text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+              Verified facts (recommended — prevents fabricated metrics)
+            </label>
+            <Textarea
+              placeholder={`Real metrics, customer names, real claims (one per line). Claude will use only these — no fabrication.\n\nExample:\n- Y Combinator-backed\n- 24/7 maintenance call coverage\n- Trusted by 200+ property managers`}
+              value={facts}
+              onChange={(e) => setFacts(e.target.value)}
+              className="min-h-[100px] text-sm bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 resize-none"
+            />
+            <p className="text-[10px] text-zinc-400 dark:text-zinc-600 mt-1">
+              For any claim not in this list, the agent will use directional language instead of inventing numbers.
+            </p>
           </div>
 
           {/* Brand Colors */}

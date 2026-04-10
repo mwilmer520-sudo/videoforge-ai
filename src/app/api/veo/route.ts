@@ -6,9 +6,22 @@ export async function POST(req: Request) {
     const body = await req.json();
     const prompt = typeof body?.prompt === "string" ? body.prompt.trim() : "";
     const aspectRatio = body?.aspectRatio;
+    const firstFrameImageUrl: string | undefined = body?.firstFrameImageUrl;
+    const previewMode: boolean = body?.previewMode === true;
 
     if (!prompt) {
       return Response.json({ error: "prompt is required" }, { status: 400 });
+    }
+
+    // -------------------------------------------------------------------------
+    // Preview mode short-circuit: don't fire Veo, return placeholder
+    // -------------------------------------------------------------------------
+    if (previewMode) {
+      return Response.json({
+        videoUrl: null,
+        lastFrameImageUrl: null,
+        previewMode: true,
+      });
     }
 
     const apiKey = process.env.GOOGLE_API_KEY;
@@ -16,7 +29,28 @@ export async function POST(req: Request) {
       return Response.json({ error: "GOOGLE_API_KEY not configured" }, { status: 500 });
     }
 
-    const response = await fetch(
+    // -------------------------------------------------------------------------
+    // Build the request payload. If a firstFrameImageUrl was provided, attempt
+    // image-to-video conditioning for frame continuity. The Gemini Veo API may
+    // or may not support this on the public endpoint — we attempt it and fall
+    // back to a text-only retry on failure.
+    // -------------------------------------------------------------------------
+    const baseInstance: Record<string, unknown> = { prompt };
+    if (firstFrameImageUrl) {
+      // Veo3 image-conditioning shape (best-effort; may be rejected by the
+      // generativelanguage.googleapis.com endpoint — see fallback below).
+      baseInstance.image = { gcsUri: firstFrameImageUrl };
+    }
+
+    const buildBody = (instance: Record<string, unknown>) =>
+      JSON.stringify({
+        instances: [instance],
+        parameters: {
+          aspectRatio: aspectRatio === "9:16" ? "9:16" : aspectRatio === "1:1" ? "1:1" : "16:9",
+        },
+      });
+
+    let response = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:predictLongRunning",
       {
         method: "POST",
@@ -24,15 +58,32 @@ export async function POST(req: Request) {
           "Content-Type": "application/json",
           "x-goog-api-key": apiKey,
         },
-        body: JSON.stringify({
-          instances: [{ prompt }],
-          parameters: {
-            aspectRatio: aspectRatio === "9:16" ? "9:16" : "16:9",
-          },
-        }),
+        body: buildBody(baseInstance),
         signal: AbortSignal.timeout(30000),
       }
     );
+
+    // Frame-continuity fallback: if image conditioning was attempted and the
+    // API rejected the payload, retry without the image field. This way we get
+    // a working video even if the public endpoint doesn't support image-to-video.
+    if (!response.ok && firstFrameImageUrl) {
+      console.warn(
+        "VEO image conditioning rejected; retrying without firstFrameImageUrl. " +
+          "This is the documented fallback for frame continuity on the Gemini API endpoint."
+      );
+      response = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:predictLongRunning",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": apiKey,
+          },
+          body: buildBody({ prompt }),
+          signal: AbortSignal.timeout(30000),
+        }
+      );
+    }
 
     if (!response.ok) {
       const err = await response.text();
@@ -80,8 +131,16 @@ export async function POST(req: Request) {
       return Response.json({ error: "No video generated" }, { status: 502 });
     }
 
+    // -------------------------------------------------------------------------
+    // Last-frame extraction for chaining into the next scene.
+    // The Gemini Veo response does not currently expose a last-frame URL
+    // directly. For v1, we return null and the next scene's call will fall
+    // through to text-only conditioning. A v2 enhancement would extract the
+    // last frame via FFmpeg server-side after downloading the MP4.
+    // -------------------------------------------------------------------------
     return Response.json({
       videoUrl: video.video.uri,
+      lastFrameImageUrl: null,
       thumbnailUrl: null,
     });
   } catch (error: any) {
